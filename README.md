@@ -116,3 +116,21 @@ Statistics about your go files:
   Percent conditionals that were errchecks:   26.889714993804215
   Percent of err != nil checks using the var 'err':   97.6958525345622
 ```
+
+## kubernetes
+```
+$ git rev-parse --short HEAD
+0db3ca4
+$ errstats $(go list k8s.io/kubernetes/...)
+Statistics about your go files:
+	Total lines: 	629444
+	Total meaningful lines: 	389486
+	Total expressions: 	2489975
+	Total conditionals: 	66755
+	Total conditionals that were error checks: 	9294
+
+	Percent lines that were errchecks: 	2.3862218410931333
+	Percent expressions that were errchecks: 	0.3732567596060201
+	Percent conditionals that were errchecks: 	13.92255261778144
+	Percent of err != nil checks using the var 'err': 	98.87023886378309
+```
