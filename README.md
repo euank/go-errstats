@@ -47,6 +47,24 @@ Statistics about your go files:
 	Percent of err != nil checks using the var 'err': 	97.32038834951456
 ```
 
+### rkt
+
+```
+$ git checkout v1.10.0
+$ errstats $(go list github.com/coreos/rkt/... | grep -v "^github.com/coreos/rkt/vendor/")
+Statistics about your go files:
+	Total lines: 	32843
+	Total meaningful lines: 	17878
+	Total expressions: 	124218
+	Total conditionals: 	2847
+	Total conditionals that were error checks: 	1472
+
+	Percent lines that were errchecks: 	8.233583174851773
+	Percent expressions that were errchecks: 	1.1850134441063291
+	Percent conditionals that were errchecks: 	51.703547593958554
+	Percent of err != nil checks using the var 'err': 	99.38858695652173
+```
+
 ### Docker
 
 ```
