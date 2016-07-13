@@ -28,6 +28,25 @@ If you know of other issues or want to fix any of these, issues and pull request
 
 I arbitrarily picked a few packages I had lying around to get some sample output:
 
+### Go standard library
+
+```
+$ go version
+go version go1.6.1 linux/amd64
+$ cd $GOROOT && errstats $(go list ./src/... | grep -v "builtin")
+Statistics about your go files:
+	Total lines: 	461394
+	Total meaningful lines: 	275899
+	Total expressions: 	1781676
+	Total conditionals: 	36386
+	Total conditionals that were error checks: 	2575
+
+	Percent lines that were errchecks: 	0.9333125527819962
+	Percent expressions that were errchecks: 	0.14452683877427772
+	Percent conditionals that were errchecks: 	7.076897707909636
+	Percent of err != nil checks using the var 'err': 	97.32038834951456
+```
+
 ### Docker
 
 ```
