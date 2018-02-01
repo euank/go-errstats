@@ -69,19 +69,19 @@ Statistics about your go files:
 
 ```
 $ git rev-parse --short HEAD
-312c826
+9b4a616e4b # better known as v18.01.0-ce
 $ errstats $(sort <(go list ./...) <(go list ./vendor/... ./contrib/...) | uniq -u | grep -v "integration-cli")
 Statistics about your go files:
-  Total lines:  72028
-  Total meaningful lines:   40578
-  Total expressions:  276800
-  Total conditionals:   6427
-  Total conditionals that were error checks:  2781
+	Total lines: 	110203
+	Total meaningful lines: 	62945
+	Total expressions: 	436162
+	Total conditionals: 	10038
+	Total conditionals that were error checks: 	4121
 
-  Percent lines that were errchecks:  6.85346739612598
-  Percent expressions that were errchecks:  1.0046965317919074
-  Percent conditionals that were errchecks:   43.27057725221721
-  Percent of err != nil checks using the var 'err':   98.92125134843582
+	Percent lines that were errchecks: 	6.546985463499881
+	Percent expressions that were errchecks: 	0.9448324246495567
+	Percent conditionals that were errchecks: 	41.053994819685194
+	Percent of err != nil checks using the var 'err': 	98.9080320310604
 ```
 
 ## Logrus
