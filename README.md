@@ -32,19 +32,19 @@ I arbitrarily picked a few packages I had lying around to get some sample output
 
 ```
 $ go version
-go version go1.6.1 linux/amd64
+go version go1.8.3 linux/amd64
 $ cd $GOROOT && errstats $(go list ./src/... | grep -v "builtin")
 Statistics about your go files:
-	Total lines: 	461394
-	Total meaningful lines: 	275899
-	Total expressions: 	1781676
-	Total conditionals: 	36386
-	Total conditionals that were error checks: 	2575
+	Total lines: 	674982
+	Total meaningful lines: 	429480
+	Total expressions: 	2680057
+	Total conditionals: 	46280
+	Total conditionals that were error checks: 	2824
 
-	Percent lines that were errchecks: 	0.9333125527819962
-	Percent expressions that were errchecks: 	0.14452683877427772
-	Percent conditionals that were errchecks: 	7.076897707909636
-	Percent of err != nil checks using the var 'err': 	97.32038834951456
+	Percent lines that were errchecks: 	0.6575393499115209
+	Percent expressions that were errchecks: 	0.10537089323100217
+	Percent conditionals that were errchecks: 	6.101987899740709
+	Percent of err != nil checks using the var 'err': 	97.06090651558074
 ```
 
 ### rkt
