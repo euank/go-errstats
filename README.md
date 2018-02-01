@@ -119,6 +119,7 @@ Statistics about your go files:
   Percent conditionals that were errchecks:   11.940298507462686
   Percent of err != nil checks using the var 'err':   100
 ```
+
 ## http2
 ```
 $ git rev-parse --short HEAD
@@ -156,18 +157,21 @@ Statistics about your go files:
 
 ## kubernetes
 ```
-$ git rev-parse --short HEAD
-0db3ca4
-$ errstats $(go list k8s.io/kubernetes/...)
-Statistics about your go files:
-	Total lines: 	629444
-	Total meaningful lines: 	389486
-	Total expressions: 	2489975
-	Total conditionals: 	66755
-	Total conditionals that were error checks: 	9294
+$ git describe
+v1.9.2
+$ errstats $(go list ./... | grep -v -E "^k8s.io/kubernetes/test")
+# can't load package: package k8s.io/kubernetes/staging/src/k8s.io/api/admission/v1beta1: code in directory /home/esk/dev/kgo/src/k8s.io/kubernetes/staging/src/k8s.io/api/admission/v1beta1 expects import "k8s.io/api/admission/v1beta1"
+# .... tons of the above
 
-	Percent lines that were errchecks: 	2.3862218410931333
-	Percent expressions that were errchecks: 	0.3732567596060201
-	Percent conditionals that were errchecks: 	13.92255261778144
-	Percent of err != nil checks using the var 'err': 	98.87023886378309
+Statistics about your go files:
+	Total lines: 	660010
+	Total meaningful lines: 	332256
+	Total expressions: 	2423393
+	Total conditionals: 	40284
+	Total conditionals that were error checks: 	11724
+
+	Percent lines that were errchecks: 	3.528604449581046
+	Percent expressions that were errchecks: 	0.4837845120457145
+	Percent conditionals that were errchecks: 	29.103366100685136
+	Percent of err != nil checks using the var 'err': 	97.77379733879222
 ```
