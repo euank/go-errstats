@@ -8,12 +8,10 @@ import (
 	"go/build"
 	"go/printer"
 	"go/token"
+	"go/types"
 	"strconv"
 
 	"github.com/Sirupsen/logrus"
-
-	"golang.org/x/tools/go/types"
-
 	"golang.org/x/tools/go/loader"
 )
 
