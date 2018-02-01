@@ -50,19 +50,19 @@ Statistics about your go files:
 ### rkt
 
 ```
-$ git checkout v1.10.0
-$ errstats $(go list github.com/coreos/rkt/... | grep -v "^github.com/coreos/rkt/vendor/")
+$ git checkout v1.29.0
+$ errstats $(go list github.com/rkt/rkt/... | grep -v "^github.com/rkt/rkt/vendor/")      
 Statistics about your go files:
-	Total lines: 	32843
-	Total meaningful lines: 	17878
-	Total expressions: 	124218
-	Total conditionals: 	2847
-	Total conditionals that were error checks: 	1472
+	Total lines: 	45958
+	Total meaningful lines: 	25017
+	Total expressions: 	169199
+	Total conditionals: 	3837
+	Total conditionals that were error checks: 	1923
 
-	Percent lines that were errchecks: 	8.233583174851773
-	Percent expressions that were errchecks: 	1.1850134441063291
-	Percent conditionals that were errchecks: 	51.703547593958554
-	Percent of err != nil checks using the var 'err': 	99.38858695652173
+	Percent lines that were errchecks: 	7.686772994363833
+	Percent expressions that were errchecks: 	1.1365315397845142
+	Percent conditionals that were errchecks: 	50.11727912431587
+	Percent of err != nil checks using the var 'err': 	98.54394175767031
 ```
 
 ### Docker
