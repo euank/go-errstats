@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"cmp"
 	"flag"
 	"fmt"
 	"go/ast"
@@ -9,7 +10,9 @@ import (
 	"go/token"
 	"go/types"
 	"log/slog"
+	"maps"
 	"os"
+	"slices"
 	"strconv"
 
 	"golang.org/x/tools/go/packages"
@@ -160,7 +163,7 @@ func main() {
 }
 
 func main_() error {
-	loglevel := flag.String("loglevel", "info", "loglevel")
+	loglevel := flag.String("loglevel", "warn", "loglevel")
 	allFiles := flag.Bool("all", false, "stats for all dependencies")
 	flag.Parse()
 
@@ -183,12 +186,31 @@ func main_() error {
 	if err != nil {
 		return err
 	}
+	pkgSet := make(map[string]*packages.Package, len(pkgs))
+	toWalk := pkgs
+	for len(toWalk) > 0 {
+		pkg := toWalk[0]
+		toWalk = toWalk[1:]
+		if _, ok := pkgSet[pkg.ID]; ok {
+			// don't recurse on this one again, we've seen it
+			continue
+		}
+		if *allFiles {
+			toWalk = slices.AppendSeq(toWalk, maps.Values(pkg.Imports))
+		}
+		pkgSet[pkg.ID] = pkg
+	}
 
 	v := &errStatVisitor{
 		exprLinesMap: make(map[string]struct{}),
 	}
 
+	pkgs = slices.Collect(maps.Values(pkgSet))
+	slices.SortFunc(pkgs, func(l, r *packages.Package) int {
+		return cmp.Compare(l.ID, r.ID)
+	})
 	for _, pkg := range pkgs {
+		slog.Info("parsing package", "pkg", pkg.PkgPath)
 		v.pkgInfo = pkg
 		v.fset = pkg.Fset
 		for _, astFile := range pkg.Syntax {
