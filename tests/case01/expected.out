@@ -1,0 +1,11 @@
+Statistics about your go files:
+	Total lines: 	23
+	Total meaningful lines: 	13
+	Total expressions: 	64
+	Total conditionals: 	3
+	Total conditionals that were error checks: 	2
+
+	Percent lines that were errchecks: 	15.384615384615385
+	Percent expressions that were errchecks: 	3.125
+	Percent conditionals that were errchecks: 	66.66666666666666
+	Percent of err != nil checks using the var 'err': 	100
