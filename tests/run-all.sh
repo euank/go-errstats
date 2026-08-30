@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 
-set -eux
+set -euo pipefail
 
 ROOT="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )/.." &> /dev/null && pwd )"
 
-cd $ROOT/tests/case01
+cd "$ROOT/tests/case01"
 
-$ROOT/errstats > actual.out
-diff expected.out actual.out
+actual="$(mktemp)"
+trap 'rm -f "$actual"' EXIT
+
+"$ROOT/errstats" > "$actual"
+diff expected.out "$actual"
