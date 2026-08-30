@@ -13,14 +13,20 @@ This is a simple program to parse your Go programs (caveat: will only work if
 your program already compiles, might not play nice with build flags) and figure
 out what percent of your code is `if err != nil` conditionals.
 
+Install and run it with:
+
+```sh
+go install github.com/euank/go-errstats@latest
+errstats ./...
+```
+
 ## What doesn't it work on?
 
 Interesting tidbit, when you do `err := recover(); err != nil`, the type of
 `err` there is `interface{}`, so this program doesn't catch that one.
 
-Most importantly, this program doesn't currently handle compound conditionals (e.g. `if err != nil && foo != bar`) and is thus liable to undercount.
-
-It also doesn't handle build tags nor any other such fancery.
+The active build context controls which files are analyzed. Build flags supported
+by `go list`, such as tags passed through `GOFLAGS`, also apply to errstats.
 
 If you know of other issues or want to fix any of these, issues and pull requests are quite welcome.
 

@@ -3,12 +3,14 @@ package main
 import (
 	"bytes"
 	"cmp"
+	"errors"
 	"flag"
 	"fmt"
 	"go/ast"
 	"go/printer"
 	"go/token"
 	"go/types"
+	"io"
 	"log/slog"
 	"maps"
 	"os"
@@ -46,7 +48,7 @@ func percent(lhs, rhs int64) float64 {
 	return float64(lhs) / float64(rhs) * 100.0
 }
 
-func (e *errStatVisitor) PrettyPrint() {
+func (e *errStatVisitor) PrettyPrint(w io.Writer) {
 	output := fmt.Sprintf("Statistics about your go files:\n"+
 		"\tTotal lines: \t%v\n"+
 		"\tTotal meaningful lines: \t%v\n"+
@@ -70,10 +72,10 @@ func (e *errStatVisitor) PrettyPrint() {
 	)
 
 	if e.nilNilCount > 0 {
-		output = fmt.Sprintf("\tNumber of 'nil != nil' and 'nil == nil' conditionals. FIX THIS: \t%v\n", e.nilNilCount)
+		output += fmt.Sprintf("\tNumber of 'nil != nil' and 'nil == nil' conditionals. FIX THIS: \t%v\n", e.nilNilCount)
 	}
 
-	fmt.Print(output)
+	fmt.Fprint(w, output)
 }
 
 func (e *errStatVisitor) Visit(node ast.Node) ast.Visitor {
@@ -91,50 +93,74 @@ func (e *errStatVisitor) Visit(node ast.Node) ast.Visitor {
 		printer.Fprint(&logbuf, e.fset, node)
 		slog.Debug("node: " + logbuf.String())
 
-		if neq, ok := cond.(*ast.BinaryExpr); ok {
-			if _, isIdent := neq.X.(*ast.Ident); !isIdent {
-				// e.g. ast.SelectorExpr
-				slog.Debug("skipping, lhs isn't good for us")
+		foundErrCheck := false
+		foundNamedErrCheck := false
+		var inspectCond func(ast.Expr)
+		inspectCond = func(expr ast.Expr) {
+			switch expr := expr.(type) {
+			case *ast.ParenExpr:
+				inspectCond(expr.X)
 				return
-			}
-			if _, isIdent := neq.Y.(*ast.Ident); !isIdent {
-				slog.Debug("skipping, rhs isn't good for us")
-				return
-			}
-
-			if neq.X.(*ast.Ident).Name == "nil" &&
-				neq.Y.(*ast.Ident).Name == "nil" {
-				slog.Warn("line " + line + " has a double nil check")
-				e.nilNilCount++
-				return
-			}
-
-			if neq.Op == token.NEQ {
-				var el *ast.Ident
-				if neq.X.(*ast.Ident).Name == "nil" {
-					el = neq.Y.(*ast.Ident)
-				} else if neq.Y.(*ast.Ident).Name == "nil" {
-					el = neq.X.(*ast.Ident)
-				} else {
-					// Neither half nil, whatever
+			case *ast.BinaryExpr:
+				if expr.Op == token.LAND || expr.Op == token.LOR {
+					inspectCond(expr.X)
+					inspectCond(expr.Y)
 					return
 				}
 
-				thisErr := e.pkgInfo.TypesInfo.Uses[el]
+				if _, isIdent := expr.X.(*ast.Ident); !isIdent {
+					// e.g. ast.SelectorExpr
+					slog.Debug("skipping, lhs isn't good for us")
+					return
+				}
+				if _, isIdent := expr.Y.(*ast.Ident); !isIdent {
+					slog.Debug("skipping, rhs isn't good for us")
+					return
+				}
+
+				lhs := expr.X.(*ast.Ident)
+				rhs := expr.Y.(*ast.Ident)
+				if lhs.Name == "nil" && rhs.Name == "nil" {
+					slog.Warn("line " + line + " has a double nil check")
+					e.nilNilCount++
+					return
+				}
+
+				if expr.Op != token.NEQ {
+					return
+				}
+
+				var errIdent *ast.Ident
+				if lhs.Name == "nil" {
+					errIdent = rhs
+				} else if rhs.Name == "nil" {
+					errIdent = lhs
+				} else {
+					return
+				}
+
+				thisErr := e.pkgInfo.TypesInfo.Uses[errIdent]
 				if thisErr == nil || thisErr.Type() == nil {
-					slog.Debug("could not find type for el", "el", el)
+					slog.Debug("could not find type for identifier", "identifier", errIdent)
 					return
 				}
 				if types.Implements(thisErr.Type(), errorType) {
-					slog.Debug("identified 'err' type")
-					e.errNotNilCount++
+					slog.Debug("identified error type")
+					foundErrCheck = true
 
-					if el.Name == "err" {
+					if errIdent.Name == "err" {
 						slog.Debug("identified 'err' name")
-						e.errNotNilNamedErrCount++
+						foundNamedErrCheck = true
 					}
 				}
 			}
+		}
+		inspectCond(cond)
+		if foundErrCheck {
+			e.errNotNilCount++
+		}
+		if foundNamedErrCheck {
+			e.errNotNilNamedErrCount++
 		}
 	}
 
@@ -178,37 +204,15 @@ func main_() error {
 	}))
 	slog.SetDefault(l)
 
-	loadcfg := &packages.Config{Mode: packages.LoadSyntax}
-	if *allFiles {
-		loadcfg.Mode = packages.LoadAllSyntax
-	}
-	pkgs, err := packages.Load(loadcfg, flag.Args()...)
+	pkgs, err := loadPackages(flag.Args(), *allFiles)
 	if err != nil {
 		return err
-	}
-	pkgSet := make(map[string]*packages.Package, len(pkgs))
-	toWalk := pkgs
-	for len(toWalk) > 0 {
-		pkg := toWalk[0]
-		toWalk = toWalk[1:]
-		if _, ok := pkgSet[pkg.ID]; ok {
-			// don't recurse on this one again, we've seen it
-			continue
-		}
-		if *allFiles {
-			toWalk = slices.AppendSeq(toWalk, maps.Values(pkg.Imports))
-		}
-		pkgSet[pkg.ID] = pkg
 	}
 
 	v := &errStatVisitor{
 		exprLinesMap: make(map[string]struct{}),
 	}
 
-	pkgs = slices.Collect(maps.Values(pkgSet))
-	slices.SortFunc(pkgs, func(l, r *packages.Package) int {
-		return cmp.Compare(l.ID, r.ID)
-	})
 	for _, pkg := range pkgs {
 		slog.Info("parsing package", "pkg", pkg.PkgPath)
 		v.pkgInfo = pkg
@@ -220,6 +224,52 @@ func main_() error {
 		}
 	}
 
-	v.PrettyPrint()
+	v.PrettyPrint(os.Stdout)
 	return nil
+}
+
+func loadPackages(patterns []string, allFiles bool) ([]*packages.Package, error) {
+	loadcfg := &packages.Config{Mode: packages.LoadSyntax}
+	if allFiles {
+		loadcfg.Mode = packages.LoadAllSyntax
+	}
+	pkgs, err := packages.Load(loadcfg, patterns...)
+	if err != nil {
+		return nil, err
+	}
+	pkgs = collectPackages(pkgs, allFiles)
+	var loadErrors []error
+	for _, pkg := range pkgs {
+		for _, pkgErr := range pkg.Errors {
+			loadErrors = append(loadErrors, errors.New(pkgErr.Error()))
+		}
+	}
+	if err := errors.Join(loadErrors...); err != nil {
+		return nil, err
+	}
+
+	return pkgs, nil
+}
+
+func collectPackages(pkgs []*packages.Package, allFiles bool) []*packages.Package {
+	pkgSet := make(map[string]*packages.Package, len(pkgs))
+	toWalk := pkgs
+	for len(toWalk) > 0 {
+		pkg := toWalk[0]
+		toWalk = toWalk[1:]
+		if _, ok := pkgSet[pkg.ID]; ok {
+			// don't recurse on this one again, we've seen it
+			continue
+		}
+		if allFiles {
+			toWalk = slices.AppendSeq(toWalk, maps.Values(pkg.Imports))
+		}
+		pkgSet[pkg.ID] = pkg
+	}
+
+	pkgs = slices.Collect(maps.Values(pkgSet))
+	slices.SortFunc(pkgs, func(l, r *packages.Package) int {
+		return cmp.Compare(l.ID, r.ID)
+	})
+	return pkgs
 }
